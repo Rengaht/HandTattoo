@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+
+html{
+  font-family: 'Space Mono','Noto Sans TC',  sans-serif;
+
+  --main-color-1: #E62CB5;
+  --main-color-2: #99E120;
+}
