@@ -1,10 +1,32 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import Intro from './comps/intro';
+import Outro from './comps/outro';
+import './App.css';
+import { gsap } from 'gsap';
 
 /**
  * Hand Tattoo AR - MediaPipe Tasks Vision Implementation
  * Updated with a strict initialization lock to prevent dual-execution in React StrictMode.
  */
 
+const DEV_MODE = true; // Set to true for faster cycles during development, false for production
+
+let PlayTime, OutroTime, IntroTime;
+
+if (DEV_MODE) {
+  PlayTime=5000;
+  OutroTime=3000;
+  IntroTime=2000;
+}else{
+  PlayTime=15000;
+  OutroTime=5000;
+  IntroTime=5000;
+}
+
+const TattooFadeTime=2000;
+const SceneFadeTime=1000;
+
+const TatooTypes=9;
 const tattooDesigns=[
   {
     id:1,
@@ -17,6 +39,11 @@ const tattooDesigns=[
     ring: 6,
     finger: [4,5,3],
     palm:7,
+  },{
+    id:3,
+    palm: 8,
+    ring: 9,    
+    palm_scale: 1.8    
   }
 ];
 
@@ -32,12 +59,22 @@ const App = () => {
   const animationRef = useRef(null);
   const lastVideoTimeRef = useRef(-1);
 
+  const [showDebug, setShowDebug] = useState(false);
+
+
+  const [state, setState] = useState('intro'); // 'intro', 'intro_ready', 'play', 'outro' 
+  const refState=useRef(state);
+
+  const refStateText=useRef();
+
   // Guard to prevent double initialization in StrictMode
   const isInitializing = useRef(false);
 
+  const refPlayAlpha = useRef({value: 0});
+
   const refImages=useMemo(()=>{
     const images={};
-    Array(7).fill(0).forEach((_, id)=>{
+    Array(TatooTypes).fill(0).forEach((_, id)=>{
       const img = new Image();
       img.src = `/tattoos/${id + 1}.svg`;
       images[id + 1]=img;
@@ -142,6 +179,9 @@ const App = () => {
         const canvas = canvasRef.current;
         if (!video || !canvas || !handLandmarker) return;
 
+
+        
+
         const canvasCtx = canvas.getContext('2d');
         const startTimeMs = performance.now();
 
@@ -159,7 +199,19 @@ const App = () => {
             canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
             
             if (results.landmarks && results.landmarks.length > 0) {
-              renderTattoos(canvasCtx, results.landmarks);
+
+              if(refState.current === 'intro_ready'){
+                // fade out intro text
+                gsap.to(".intro-text", { 
+                  opacity: 0, 
+                  duration: SceneFadeTime / 1000, 
+                  ease: "power2.inOut",
+                  onComplete: () => {
+                    setState(()=>'play');
+                  }
+                });
+              }
+              if(refState.current === 'play') renderTattoos(canvasCtx, results.landmarks);
             }
             canvasCtx.restore();
           } catch (e) {
@@ -198,9 +250,9 @@ const App = () => {
 
 
       const seleced=tattooDesigns.find(t=>t.id===selectedTattoo);
-      const palm=seleced?.palm || 1;
-      const ring=seleced?.ring || 1;
-      const finger=seleced?.finger || [1,1];
+      const palm=seleced?.palm;
+      const ring=seleced?.ring;
+      const finger=seleced?.finger;
 
 
       
@@ -215,54 +267,59 @@ const App = () => {
       // };
       const length = Math.sqrt(hand_vector.x ** 2 + hand_vector.y ** 2);
       // move the ring tattoo slightly towards the back of the hand
-      const offset = 0.1; // Adjust this value to move the tattoo more or less
-      const ring_x = ringBase.x - (hand_vector.x / length) * offset;
-      const ring_y = ringBase.y - (hand_vector.y / length) * offset;
       
-      drawEmoji(ctx,  ring_x * ctx.canvas.width, ring_y * ctx.canvas.height, ring, handScale*1.2, angle);
+      if(ring){
+        const offset = 0; // Adjust this value to move the tattoo more or less
 
+        const ring_x = ringBase.x - (hand_vector.x / length) * offset;
+        const ring_y = ringBase.y - (hand_vector.y / length) * offset;
+        drawEmoji(ctx,  ring_x * ctx.canvas.width, ring_y * ctx.canvas.height, ring, handScale*1.2, angle);
+      }
 
-      const palm_x= - (hand_vector.x / length) * 0.05;
-      const palm_y= - (hand_vector.y / length) * 0.05;
+      if(palm){
+        const palm_x= - (hand_vector.x / length) * 0.05;
+        const palm_y= - (hand_vector.y / length) * 0.05;
 
-      drawEmoji(ctx, centerX + palm_x * ctx.canvas.width, centerY + palm_y * ctx.canvas.height, palm, handScale*1.1, angle);
+        drawEmoji(ctx, centerX + palm_x * ctx.canvas.width, centerY + palm_y * ctx.canvas.height, palm, handScale*(seleced?.palm_scale || 1.1) , angle);
+      }
 
+      if(finger){
+        // const fingerTips = [4, 8, 12, 16, 20];
+        const fingerTips = [3,7, 11, 15, 19];
+        fingerTips.forEach((idx, i) => {
+          const tip = landmarks[idx];
+          const rotation = Math.atan2(
+            (landmarks[idx - 2].y - tip.y) * ctx.canvas.height,
+            (landmarks[idx - 2].x - tip.x) * ctx.canvas.width
+          );
+          drawEmoji(ctx, tip.x * ctx.canvas.width, tip.y * ctx.canvas.height, finger[0], handScale * 0.2, rotation-90 * Math.PI / 180);
 
-      // const fingerTips = [4, 8, 12, 16, 20];
-      const fingerTips = [3,7, 11, 15, 19];
-      fingerTips.forEach((idx, i) => {
-        const tip = landmarks[idx];
-        const rotation = Math.atan2(
-          (landmarks[idx - 2].y - tip.y) * ctx.canvas.height,
-          (landmarks[idx - 2].x - tip.x) * ctx.canvas.width
-        );
-        drawEmoji(ctx, tip.x * ctx.canvas.width, tip.y * ctx.canvas.height, finger[0], handScale * 0.2, rotation-90 * Math.PI / 180);
+        });
 
-      });
-
-      const fingerCenter = [6,10,14,18];//[7,11,15,19]
-      fingerCenter.forEach((idx, i) => {
-        const base = landmarks[idx];
-        const rotation = Math.atan2(
-          (landmarks[idx - 1].y - base.y) * ctx.canvas.height,
-          (landmarks[idx - 1].x - base.x) * ctx.canvas.width
-        );
-        drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, finger[1], handScale * 0.2, rotation-90 * Math.PI / 180);
-      });
-
-      const fingerBase=[2,5,9,13,17];//[3,6, 10,14,18];
-      if(finger.length>2){
-        fingerBase.forEach((idx, i) => {
+        const fingerCenter = [6,10,14,18];//[7,11,15,19]
+        fingerCenter.forEach((idx, i) => {
           const base = landmarks[idx];
           const rotation = Math.atan2(
             (landmarks[idx - 1].y - base.y) * ctx.canvas.height,
             (landmarks[idx - 1].x - base.x) * ctx.canvas.width
           );
-          drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, finger[2], handScale * 0.2, rotation-90 * Math.PI / 180);
+          drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, finger[1], handScale * 0.2, rotation-90 * Math.PI / 180);
         });
+
+        const fingerBase=[2,5,9,13,17];//[3,6, 10,14,18];
+        if(finger.length>2){
+          fingerBase.forEach((idx, i) => {
+            const base = landmarks[idx];
+            const rotation = Math.atan2(
+              (landmarks[idx - 1].y - base.y) * ctx.canvas.height,
+              (landmarks[idx - 1].x - base.x) * ctx.canvas.width
+            );
+            drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, finger[2], handScale * 0.2, rotation-90 * Math.PI / 180);
+          });
+        }
       }
 
-      drawSkeleton(ctx, landmarks);
+      // drawSkeleton(ctx, landmarks);
     });
   };
 
@@ -272,23 +329,20 @@ const App = () => {
 
     const img = refImages[emoji];
     if (img) {
+
+      const ratio=img.height / img.width;
+      const drawWidth= size;
+      const drawHeight=size * ratio;
+
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(rotation);
-      // ctx.font = `${size}px serif`;
-      // ctx.textAlign = 'center';
-      // ctx.textBaseline = 'middle';
-      // ctx.globalAlpha = 0.7;
-      // ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      // ctx.shadowBlur = 4;
-      // ctx.fillText(emoji, 0, 0);
-
 
     
       ctx.globalAlpha = 0.8;
       ctx.shadowColor = 'rgba(0,0,0,0.5)';
       ctx.shadowBlur = 6;
-      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+      ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
    
 
 
@@ -315,7 +369,106 @@ const App = () => {
     });
   };
 
+  useEffect(()=>{
+
+    refState.current=state;
+
+     if(state === 'intro'){
+
+      let time_left=IntroTime;
+      const introTimeout = setInterval(() => {
+        refStateText.current.textContent = `> ${state} - ${Math.ceil(time_left / 1000)}s`; // Update debug text
+        time_left -= 1000;
+        if (time_left <= 0) {
+          clearInterval(introTimeout);
+          console.log('Intro time ended, switching to intro_ready');
+          setState(()=>'intro_ready');
+        }
+      }, 1000);
+      return () => clearInterval(introTimeout);
+    }
+
+    if(state === 'play'){
+
+      // choose tatoo type
+      // setSelectedTattoo(Math.floor(Math.random() * tattooDesigns.length) + 1);
+      setSelectedTattoo(3);
+
+      // gsap.fromTo(".intro-text", { opacity: 1 }, { opacity: 0, duration: 1, ease: "power2.inOut" });
+      gsap.fromTo(refPlayAlpha.current, { value: 0 }, {
+        value: 1, 
+        duration: TattooFadeTime / 1000, 
+        ease: "power2.inOut", 
+        onUpdate: () => {
+          const alpha = refPlayAlpha.current.value;
+          canvasRef.current.style.opacity = alpha;
+        } 
+      });
+
+      let time_left=PlayTime;
+      const playTimeout = setInterval(() => {
+        refStateText.current.textContent = `> ${state} - ${Math.ceil(time_left / 1000)}s`; // Update debug text
+        time_left -= 1000;
+        if (time_left <= 0) {
+          clearInterval(playTimeout);
+          console.log('Play time ended, switching to outro');
+
+          gsap.to(refPlayAlpha.current, { 
+            value: 0, 
+            duration: TattooFadeTime / 1000, 
+            ease: "power2.inOut", 
+            onUpdate: () => {
+              const alpha = refPlayAlpha.current.value;
+              canvasRef.current.style.opacity = alpha;
+            },
+            onComplete: () => {
+              setState(()=>'outro');
+            }
+          });
+        }
+      }, 1000);
+      return () => clearInterval(playTimeout);
+    }
+
+    if(state === 'outro'){
+
+      gsap.to(".outro-text",{ 
+        opacity: 1, 
+        duration: SceneFadeTime / 1000, 
+        stagger: 0.5,
+        ease: "power2.inOut" 
+      });
+
+      let time_left=OutroTime;
+      const outroTimeout = setInterval(() => {
+        refStateText.current.textContent = `> ${state} - ${Math.ceil(time_left / 1000)}s`; // Update debug text
+        time_left -= 1000;
+        if (time_left <= 0) {
+          clearInterval(outroTimeout);
+          console.log('Outro time ended');
+          // Optionally reset to intro or stop
+
+          gsap.to(".outro-text", { 
+            opacity: 0, 
+            stagger: 0.25,
+            duration: SceneFadeTime / 1000, 
+            ease: "power2.inOut",
+            onComplete: () => {
+              setState(()=>'intro');
+            }
+          });
+          
+        }
+      }, 1000);
+      return () => clearInterval(outroTimeout);
+    }
+
+  },[state]);
+
   return (
+
+    <main className="absolute left-0 top-0 w-full h-full bg-black text-white">
+      <div ref={refStateText} className='fixed top-0 left-0 text-xl text-white text-shadow'>{state}</div>
     <div className="flex flex-col items-center justify-center min-h-screen">
       {/* <div className="max-w-4xl w-full space-y-8">         */}
 
@@ -351,47 +504,50 @@ const App = () => {
                 </div>
               </div> */}
             </div>
-
-            <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[3rem] border border-white/10 flex justify-center">
-              
-              <div className="flex flex-row gap-4 items-center justify-center">
-                {tattooDesigns.map(({id, palm}, index) => (
-                  <button
-                    key={id}
-                    onClick={() => setSelectedTattoo(id)}
-                    className={`group w-24 relative aspect-square flex items-center justify-center text-4xl rounded-2xl transition-all duration-500 overflow-hidden ${
-                      selectedTattoo === id 
-                        ? 'bg-gradient-to-br from-[var(--main-color-1)] to-[var(--main-color-2)] scale-110' 
-                        : 'bg-neutral-800/50 hover:bg-neutral-800 border border-white/5'
-                    }`}
-                  >
-                    <img src={`/tattoos/${palm}.svg`} alt={`Tattoo ${palm}`} className="w-3/4 h-3/4 object-contain" />
-                    {selectedTattoo === id && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <footer className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'Tracking', value: 'High Precision', color: 'bg-emerald-500' },
-                { label: 'Latency', value: 'Real-time', color: 'bg-violet-500' },
-                { label: 'Runtime', value: 'WebGL GPU', color: 'bg-fuchsia-500' },
-                { label: 'Status', value: 'Active', color: 'bg-rose-500' }
-              ].map((stat, i) => (
-                <div key={i} className="bg-neutral-200/50 border border-white/5 p-4 text-center">
-                  <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1">{stat.label}</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${stat.color}`}></span>
-                    <p className="text-xs font-bold text-neutral-300">{stat.value}</p>
-                  </div>
+            {showDebug && (<>
+              <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[3rem] border border-white/10 flex justify-center">
+                
+                <div className="flex flex-row gap-4 items-center justify-center">
+                  {tattooDesigns.map(({id, palm}, index) => (
+                    <button
+                      key={id}
+                      onClick={() => setSelectedTattoo(id)}
+                      className={`group w-24 relative aspect-square flex items-center justify-center text-4xl rounded-2xl transition-all duration-500 overflow-hidden ${
+                        selectedTattoo === id 
+                          ? 'bg-gradient-to-br from-[var(--main-color-1)] to-[var(--main-color-2)] scale-110' 
+                          : 'bg-neutral-800/50 hover:bg-neutral-800 border border-white/5'
+                      }`}
+                    >
+                      <img src={`/tattoos/${palm}.svg`} alt={`Tattoo ${palm}`} className="w-3/4 h-3/4 object-contain" />
+                      {selectedTattoo === id && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </footer>
+              </div>
+
+              <footer className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { label: 'Tracking', value: 'High Precision', color: 'bg-emerald-500' },
+                  { label: 'Latency', value: 'Real-time', color: 'bg-violet-500' },
+                  { label: 'Runtime', value: 'WebGL GPU', color: 'bg-fuchsia-500' },
+                  { label: 'Status', value: 'Active', color: 'bg-rose-500' }
+                ].map((stat, i) => (
+                  <div key={i} className="bg-neutral-200/50 border border-white/5 p-4 text-center">
+                    <p className="text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1">{stat.label}</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full ${stat.color}`}></span>
+                      <p className="text-xs font-bold text-neutral-300">{stat.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </footer>
+            </>)}
           </>
         )}
       </div>
-    // </div>
+        {(state === 'intro' || state === 'intro_ready') && <Intro />}
+        {state === 'outro' && <Outro />}
+    </main>
   );
 };
 

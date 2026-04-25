@@ -1,0 +1,40 @@
+ .intro-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+@keyframes float {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.8);
+    }
+    10% {
+        opacity: 1;
+        transform: translateX(0px) scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: translateX(-10px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+    }
+}
+
+.floating-item {
+    font-family: 'Arial', 'Microsoft YaHei', sans-serif;
+    font-weight: 500;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    white-space: nowrap;
+}
+
+.floating-item img {
+    object-fit: contain;
+}
