@@ -9,7 +9,7 @@ import { gsap } from 'gsap';
  * Updated with a strict initialization lock to prevent dual-execution in React StrictMode.
  */
 
-const DEV_MODE = true; // Set to true for faster cycles during development, false for production
+const DEV_MODE=false; // Set to true for faster cycles during development, false for production
 
 let PlayTime, OutroTime, IntroTime;
 
@@ -23,6 +23,7 @@ if (DEV_MODE) {
   IntroTime=5000;
 }
 
+const HandIdleTime=3000; 
 const TattooFadeTime=2000;
 const SceneFadeTime=1000;
 
@@ -72,6 +73,7 @@ const App = () => {
   const isInitializing = useRef(false);
 
   const refPlayAlpha = useRef({value: 0});
+  const refHandIdleTimeout = useRef(null);
 
   const refImages=useMemo(()=>{
     const images={};
@@ -212,7 +214,37 @@ const App = () => {
                   }
                 });
               }
+              
               if(refState.current === 'play') renderTattoos(canvasCtx, results.landmarks);
+
+            }else{
+
+              if(refState.current === 'play'){
+                // If no hands detected for a certain time, fade out tattoos and return to outro
+                if(refHandIdleTimeout.current==null){
+
+                  refHandIdleTimeout.current = setTimeout(() => {
+                    if(refState.current === 'play' && lastVideoTimeRef.current === video.currentTime){
+                      // go to outro
+                      console.log('No hands detected, returning to outro');
+                      gsap.to(refPlayAlpha.current, { 
+                        value: 0, 
+                        duration: TattooFadeTime / 1000, 
+                        ease: "power2.inOut", 
+                        onUpdate: () => {
+                          const alpha = refPlayAlpha.current.value;
+                          canvasRef.current.style.opacity = alpha;
+                        },
+                        onComplete: () => {
+                          setState(()=>'outro');
+                          refHandIdleTimeout.current = null;
+                        }
+                      });
+                    }
+                  }, HandIdleTime);
+                }
+              }
+              
             }
             canvasCtx.restore();
           } catch (e) {
@@ -226,6 +258,7 @@ const App = () => {
       predict();
       return () => {
         if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        if (refHandIdleTimeout.current) clearTimeout(refHandIdleTimeout.current);
       };
     }
   }, [isWebcamRunning, handLandmarker, selectedTattoo]);
@@ -373,6 +406,9 @@ const App = () => {
   useEffect(()=>{
 
     refState.current=state;
+    if (refHandIdleTimeout.current) clearTimeout(refHandIdleTimeout.current);
+    refHandIdleTimeout.current=null;
+
 
      if(state === 'intro'){
 
@@ -390,7 +426,8 @@ const App = () => {
     }
 
     if(state === 'play'){
-
+      
+      
       // choose tatoo type
       setSelectedTattoo(Math.floor(Math.random() * tattooDesigns.length) + 1);
 
@@ -468,7 +505,7 @@ const App = () => {
   return (
 
     <main className="absolute left-0 top-0 w-full h-full bg-black text-white">
-      <div ref={refStateText} className='fixed top-0 left-0 text-xl text-white text-shadow'>{state}</div>
+      <div ref={refStateText} className='fixed z-10 top-0 left-0 text-xl text-white text-shadow'>{state}</div>
     <div className="flex flex-col items-center justify-center min-h-screen">
       {/* <div className="max-w-4xl w-full space-y-8">         */}
 
