@@ -30,20 +30,21 @@ const TatooTypes=9;
 const tattooDesigns=[
   {
     id:1,
+    palm: 8,
+    ring: 9,    
+    palm_scale: 1.8    
+  },
+  {
+    id:2,
     ring: 7,
     finger: [1,4],
     palm: 2, 
   },
   {
-    id:2,
+    id:3,
     ring: 6,
     finger: [4,5,3],
     palm:7,
-  },{
-    id:3,
-    palm: 8,
-    ring: 9,    
-    palm_scale: 1.8    
   }
 ];
 
@@ -391,8 +392,7 @@ const App = () => {
     if(state === 'play'){
 
       // choose tatoo type
-      // setSelectedTattoo(Math.floor(Math.random() * tattooDesigns.length) + 1);
-      setSelectedTattoo(3);
+      setSelectedTattoo(Math.floor(Math.random() * tattooDesigns.length) + 1);
 
       // gsap.fromTo(".intro-text", { opacity: 1 }, { opacity: 0, duration: 1, ease: "power2.inOut" });
       gsap.fromTo(refPlayAlpha.current, { value: 0 }, {
