@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
 
+@font-face {
+  font-family: GlowSansTCNormalMedium ;
+  src: url('./fonts/GlowSansTC-Normal-Medium.otf') format('opentype');
+}
+@font-face {
+  font-family: MomochidoriBold ;
+  src: url('./fonts/Momochidori-Bold.otf') format('opentype');
+}
+@font-face{
+  font-family: ABCDiatypeMedium;
+  src: url('./fonts/ABCDiatype-Medium-Trial.otf') format('opentype');
+}
+
 html{
-  font-family: 'Space Mono','Noto Sans TC',  sans-serif;
+  font-family: 'ABCDiatypeMedium', 'GlowSansTCNormalMedium',  sans-serif;
 
   --main-color-1: #E62CB5;
   --main-color-2: #99E120;

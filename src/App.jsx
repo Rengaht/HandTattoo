@@ -23,30 +23,81 @@ if (DEV_MODE) {
   IntroTime=5000;
 }
 
-const HandIdleTime=3000; 
-const TattooFadeTime=2000;
-const SceneFadeTime=1000;
+const HandIdleTime=2000; 
+const TattooFadeTime=1000;
+const SceneFadeTime=800;
 
-const TatooTypes=9;
+const TatooTypes=13;
 const tattooDesigns=[
   {
     id:1,
-    palm: 8,
-    ring: 9,    
-    palm_scale: 1.8    
+    palm: 10,
+    ring: 11,    
+    palm_scale: 1.8,    
+    finger:[6,7,5],
+    thumb:[8]
   },
   {
     id:2,
-    ring: 7,
-    finger: [1,4],
-    palm: 2, 
+    palm: 10,
+    ring: 11,    
+    palm_scale: 1.8,    
+    finger:[6,7,5],
+    thumb:[7,5]
   },
   {
     id:3,
-    ring: 6,
-    finger: [4,5,3],
-    palm:7,
-  }
+    palm: 10,
+    ring: 12,    
+    palm_scale: 1.8,    
+    finger:[6,7,5],
+    thumb:[7,5]
+  },
+  {
+    id:4,
+    palm: 10,
+    ring: 13,    
+    palm_scale: 1.8,    
+    finger:[6,7,5],
+    thumb:[7,5]
+  },
+  {
+    id:5,
+    palm: 10,
+    ring: 12,    
+    palm_scale: 1.8,    
+    finger:[6,7,3],
+    thumb:[7,3]
+  },
+  {
+    id:6,
+    palm: 10,
+    ring: 12,    
+    palm_scale: 1.8,    
+    finger:[2,7,3],
+    thumb:[2,3]
+  },  {
+    id:7,
+    palm: 10,
+    ring: 12,    
+    palm_scale: 1.8,    
+    finger:[2,4,3],
+    thumb:[2,3]
+  },  {
+    id:8,
+    palm: 10,
+    ring: 12,    
+    palm_scale: 1.8,    
+    finger:[2,7,3],
+    thumb:[2,3]
+  },  {
+    id:9,
+    palm: 10,
+    ring: 12,    
+    palm_scale: 1.8,    
+    finger:[1,4,3],
+    thumb:[1,3]
+  },
 ];
 
 
@@ -223,6 +274,8 @@ const App = () => {
                 // If no hands detected for a certain time, fade out tattoos and return to outro
                 if(refHandIdleTimeout.current==null){
 
+                  console.log('No hands detected, starting idle timer');
+
                   refHandIdleTimeout.current = setTimeout(() => {
                     if(refState.current === 'play' && lastVideoTimeRef.current === video.currentTime){
                       // go to outro
@@ -287,6 +340,7 @@ const App = () => {
       const palm=seleced?.palm;
       const ring=seleced?.ring;
       const finger=seleced?.finger;
+      const thumb=seleced?.thumb;
 
 
       
@@ -317,7 +371,9 @@ const App = () => {
         drawEmoji(ctx, centerX + palm_x * ctx.canvas.width, centerY + palm_y * ctx.canvas.height, palm, handScale*(seleced?.palm_scale || 1.1) , angle);
       }
 
-      if(finger){
+      const FingerScale=0.12;
+      const FingerScale2=0.15;
+      if(finger.length>0){
         // const fingerTips = [4, 8, 12, 16, 20];
         const fingerTips = [3,7, 11, 15, 19];
         fingerTips.forEach((idx, i) => {
@@ -326,7 +382,10 @@ const App = () => {
             (landmarks[idx - 2].y - tip.y) * ctx.canvas.height,
             (landmarks[idx - 2].x - tip.x) * ctx.canvas.width
           );
-          drawEmoji(ctx, tip.x * ctx.canvas.width, tip.y * ctx.canvas.height, finger[0], handScale * 0.2, rotation-90 * Math.PI / 180);
+
+          const type = (idx === 3)?thumb[0]:finger[0];
+          const scale = (idx === 3 && selectedTattoo==1)?0.2:FingerScale;
+          drawEmoji(ctx, tip.x * ctx.canvas.width, tip.y * ctx.canvas.height, type, handScale * scale, rotation-90 * Math.PI / 180);
 
         });
 
@@ -337,7 +396,8 @@ const App = () => {
             (landmarks[idx - 1].y - base.y) * ctx.canvas.height,
             (landmarks[idx - 1].x - base.x) * ctx.canvas.width
           );
-          drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, finger[1], handScale * 0.2, rotation-90 * Math.PI / 180);
+          
+          drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, finger[1], handScale * FingerScale2, rotation-90 * Math.PI / 180);
         });
 
         const fingerBase=[2,5,9,13,17];//[3,6, 10,14,18];
@@ -348,7 +408,11 @@ const App = () => {
               (landmarks[idx - 1].y - base.y) * ctx.canvas.height,
               (landmarks[idx - 1].x - base.x) * ctx.canvas.width
             );
-            drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, finger[2], handScale * 0.2, rotation-90 * Math.PI / 180);
+            
+            const type=(idx===2)?(thumb.length>1? thumb[1]:-1):finger[2];
+
+            if(type!==-1)
+              drawEmoji(ctx, base.x * ctx.canvas.width, base.y * ctx.canvas.height, type, handScale * FingerScale2, rotation-90 * Math.PI / 180);
           });
         }
       }

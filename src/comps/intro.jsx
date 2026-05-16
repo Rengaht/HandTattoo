@@ -30,9 +30,9 @@ const IntroTattooCount=23;
 // Colors inspired by the image
 const colors = ['#E62CB5', '#99E120'];
 
-const ItemSizeRange = [20, 30]; // px
+const ItemSizeRange = [30, 50]; // px
 const ItemDurationRange = [5000, 10000]; // ms
-const ImageSizeRange = [60, 120]; // px
+const ImageSizeRange = [90, 150]; // px
 const ImageDurationRange = [5000, 10000]; // ms
 
 const MoveOffsetRange = 20; // px
@@ -195,7 +195,7 @@ export default function Intro(){
                         pointerEvents: 'none',
                         userSelect: 'none',
                         zIndex: Math.floor(Math.random() * 100),
-                        fontFamily: 'Arial, Microsoft YaHei, sans-serif',
+                        // fontFamily: 'Arial, Microsoft YaHei, sans-serif',
                         fontWeight: 500,
                         textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                         whiteSpace: 'nowrap',
