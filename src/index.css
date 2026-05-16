@@ -3,15 +3,15 @@
 
 @font-face {
   font-family: GlowSansTCNormalMedium ;
-  src: url('./fonts/GlowSansTC-Normal-Medium.otf') format('opentype');
+  src: url('/fonts/GlowSansTC-Normal-Medium.otf') format('opentype');
 }
 @font-face {
   font-family: MomochidoriBold ;
-  src: url('./fonts/Momochidori-Bold.otf') format('opentype');
+  src: url('/fonts/Momochidori-Bold.otf') format('opentype');
 }
 @font-face{
   font-family: ABCDiatypeMedium;
-  src: url('./fonts/ABCDiatype-Medium-Trial.otf') format('opentype');
+  src: url('/fonts/ABCDiatype-Medium-Trial.otf') format('opentype');
 }
 
 html{
